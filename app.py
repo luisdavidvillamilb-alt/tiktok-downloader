@@ -28,22 +28,26 @@ def valid_tiktok_url(raw):
 
 
 def create_watermark(path):
-    image = Image.new("RGBA", (620, 100), (0, 0, 0, 0))
+    image = Image.new("RGBA", (620, 90), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
 
-    green = (83, 252, 24, 190)
-    white = (255, 255, 255, 190)
-
-    draw.polygon([
-        (18, 15), (43, 15), (43, 39), (70, 15),
-        (101, 15), (65, 49), (101, 84), (70, 84),
-        (43, 59), (43, 84), (18, 84)
-    ], fill=green)
-
     font = ImageFont.truetype(
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 43
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 38
     )
-    draw.text((122, 25), "@theclipscolombia", font=font, fill=white)
+
+    draw.rounded_rectangle(
+        (5, 5, 615, 85),
+        radius=16,
+        fill=(0, 0, 0, 105)
+    )
+
+    draw.text(
+        (22, 17),
+        "@theclipscolombia",
+        font=font,
+        fill=(255, 255, 255, 210)
+    )
+
     image.save(path)
 
 
@@ -126,11 +130,14 @@ def download_video(body: DownloadRequest):
                 if p.is_file() and p.suffix.lower() in
                 {".mp4", ".mov", ".mkv", ".webm"}
             ]
+
             if not candidates:
                 raise RuntimeError("No se encontró el video.")
+
             filename = candidates[0]
 
         watermarked = outdir / "video_theclipscolombia.mp4"
+
         apply_watermark(filename, watermarked, outdir)
 
         safe_name = re.sub(
