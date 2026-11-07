@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#111111">
+<link rel="manifest" href="/manifest.webmanifest">
+<title>TikTok Downloader</title>
+<style>
+body{font-family:Arial;background:#111;color:white;text-align:center;padding:35px 15px}
+main{max-width:420px;margin:auto}
+input,button{box-sizing:border-box;width:100%;padding:15px;margin:10px 0;border-radius:10px;border:0;font-size:16px}
+button{background:#fe2c55;color:white;font-weight:bold;cursor:pointer}
+p{color:#ccc}
+</style>
+</head>
+<body>
+<main>
+<h1>TikTok Downloader</h1>
+<p>Pega el enlace de un video público que tengas autorización para descargar.</p>
+<input id="url" type="url" placeholder="Pega aquí el enlace de TikTok">
+<button id="download">DESCARGAR VIDEO</button>
+<p id="status"></p>
+</main>
+<script>
+document.getElementById("download").onclick=async()=>{
+ const url=document.getElementById("url").value.trim();
+ const status=document.getElementById("status");
+ if(!url){status.textContent="Pega primero un enlace.";return;}
+ status.textContent="Procesando video...";
+ try{
+  const response=await fetch("/api/download",{
+   method:"POST",
+   headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({url})
+  });
+  if(!response.ok){
+   const error=await response.json();
+   throw new Error(error.detail||"No se pudo descargar.");
+  }
+  const blob=await response.blob();
+  const link=document.createElement("a");
+  link.href=URL.createObjectURL(blob);
+  link.download="video-tiktok.mp4";
+  link.click();
+  URL.revokeObjectURL(link.href);
+  status.textContent="Descarga iniciada.";
+ }catch(e){status.textContent=e.message;}
+};
+</script>
+</body>
+</html>
