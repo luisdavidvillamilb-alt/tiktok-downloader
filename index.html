@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111318">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TikTok Downloader">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icon.svg">
+<title>TikTok Downloader</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#111318;color:#f7f7fa;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
+main{max-width:520px;margin:auto;padding:calc(28px + env(safe-area-inset-top)) 20px 40px}
+.logo{display:flex;align-items:center;justify-content:center;gap:10px;margin:28px 0 8px;font-size:25px;font-weight:750}
+.mark{display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:#fe2c55;font-size:23px}
+.sub{text-align:center;color:#aeb2bd;margin:0 0 30px}
+.panel{background:#1b1e25;border:1px solid #2c303a;border-radius:22px;padding:20px}
+label{display:block;font-size:14px;color:#c8cbd4;margin:0 0 10px}
+textarea{width:100%;min-height:112px;resize:vertical;border:1px solid #343945;border-radius:14px;background:#111318;color:white;padding:14px;font:16px -apple-system,BlinkMacSystemFont,sans-serif;outline:none}
+textarea:focus{border-color:#fe2c55}
+button{border:0;border-radius:14px;padding:15px 16px;font-size:15px;font-weight:700;cursor:pointer}
+.paste{background:#2b303a;color:#f5f5f7;width:100%;margin-top:10px}
+.download{background:#fe2c55;color:white;width:100%;margin-top:12px}
+button:disabled{opacity:.55}
+.note{color:#9da2ae;font-size:12px;line-height:1.5;margin:16px 2px 0}
+.status{font-size:14px;line-height:1.5;margin-top:14px;color:#f1c66d;display:none;overflow-wrap:anywhere}
+.steps{margin-top:24px;color:#b7bbc5;font-size:14px;line-height:1.8}
+.steps strong{color:#f4f4f6}
+footer{text-align:center;color:#777d89;font-size:12px;margin-top:28px}
+</style>
+</head>
+<body><main>
+<div class="logo"><span class="mark">↓</span> TikTok Downloader</div>
+<p class="sub">Pega un enlace y descarga el video</p>
+<section class="panel">
+<label for="url">Enlace del video de TikTok</label>
+<textarea id="url" placeholder="https://www.tiktok.com/@usuario/video/..."></textarea>
+<button class="paste" id="paste">📋 Pegar enlace del portapapeles</button>
+<button class="download" id="download">DESCARGAR VIDEO</button>
+<div class="status" id="status" role="status" aria-live="polite"></div>
+<p class="note">Descarga videos públicos que permitan el acceso. No elimina marcas de agua. Usa contenido propio o autorizado por su titular.</p>
+</section>
+<div class="steps"><strong>Cómo usarla</strong><br>1. Copia el enlace desde TikTok.<br>2. Pégalo aquí y pulsa Descargar.<br>3. Guarda el archivo en Fotos y publícalo si tienes permiso.</div>
+<footer>Aplicación web instalable · iPhone</footer>
+</main>
+<script>
+const url=document.querySelector('#url'),status=document.querySelector('#status'),btn=document.querySelector('#download');
+function show(msg,color='#f1c66d'){status.style.display='block';status.style.color=color;status.textContent=msg}
+document.querySelector('#paste').onclick=async()=>{try{url.value=await navigator.clipboard.readText();show('Enlace pegado. Pulsa Descargar video.','#9ee6b0')}catch(e){show('No se pudo leer el portapapeles. Mantén pulsado el campo y elige Pegar.')}};
+btn.onclick=async()=>{
+ const value=url.value.trim();
+ if(!value){show('Primero pega un enlace de TikTok.');return}
+ let parsed;try{parsed=new URL(value)}catch(e){show('El enlace no es válido.');return}
+ if(!/(^|\.)tiktok\.com$/i.test(parsed.hostname)){show('Pega un enlace de TikTok válido.');return}
+ btn.disabled=true;btn.textContent='PROCESANDO…';show('Conectando con el servidor y preparando el video…');
+ try{
+   const response=await fetch('/api/download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:value})});
+   if(!response.ok){let data={};try{data=await response.json()}catch(e){}throw new Error(data.detail||'No se pudo descargar este video.')}
+   const blob=await response.blob();const disposition=response.headers.get('Content-Disposition')||'';
+   const match=disposition.match(/filename="?([^"]+)"?/i);const filename=match?match[1]:'tiktok-video.mp4';
+   const objectUrl=URL.createObjectURL(blob),a=document.createElement('a');a.href=objectUrl;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+   setTimeout(()=>URL.revokeObjectURL(objectUrl),60000);
+   show('Descarga lista. En iPhone, abre el archivo descargado y usa Compartir → Guardar vídeo.','#9ee6b0');
+ }catch(e){show(e.message||'Error de conexión. Inténtalo de nuevo.')}
+ finally{btn.disabled=false;btn.textContent='DESCARGAR VIDEO'}
+};
+</script>
+</body></html>
