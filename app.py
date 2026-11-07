@@ -1,4 +1,3 @@
-
 import re
 import subprocess
 import tempfile
@@ -27,30 +26,28 @@ def valid_tiktok_url(raw):
     return host == "tiktok.com" or host.endswith(".tiktok.com")
 
 
+# MARCA DE AGUA DISCRETA
 def create_watermark(path):
-    image = Image.new("RGBA", (620, 90), (0, 0, 0, 0))
+    image = Image.new("RGBA", (360, 54), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
 
     font = ImageFont.truetype(
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 38
-    )
-
-    draw.rounded_rectangle(
-        (5, 5, 615, 85),
-        radius=16,
-        fill=(0, 0, 0, 105)
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 24
     )
 
     draw.text(
-        (22, 17),
+        (5, 8),
         "@theclipscolombia",
         font=font,
-        fill=(255, 255, 255, 210)
+        fill=(255, 255, 255, 135),
+        stroke_width=1,
+        stroke_fill=(0, 0, 0, 90)
     )
 
     image.save(path)
 
 
+# APLICAR MARCA DE AGUA
 def apply_watermark(source, destination, workdir):
     watermark = workdir / "marca.png"
     create_watermark(watermark)
@@ -64,8 +61,8 @@ def apply_watermark(source, destination, workdir):
         "-i", str(watermark),
         "-filter_complex",
         "[0:v]scale=w='min(720,iw)':h=-2[base];"
-        "[1:v][base]scale2ref=w=main_w*0.42:h=-1[wm][base2];"
-        "[base2][wm]overlay=x=W-w-16:y=H-h-16:format=auto[v]",
+        "[1:v][base]scale2ref=w=main_w*0.30:h=-1[wm][base2];"
+        "[base2][wm]overlay=x=W-w-14:y=H-h-14:format=auto[v]",
         "-map", "[v]",
         "-map", "0:a?",
         "-c:v", "libx264",
@@ -88,11 +85,13 @@ def apply_watermark(source, destination, workdir):
     )
 
 
+# COMPROBAR SERVIDOR
 @app.get("/api/health")
 def health():
     return {"ok": True, "service": "TikTok Downloader"}
 
 
+# DESCARGAR Y PROCESAR VIDEO
 @app.post("/api/download")
 def download_video(body: DownloadRequest):
     url = str(body.url)
@@ -173,4 +172,5 @@ def download_video(body: DownloadRequest):
         )
 
 
+# INTERFAZ WEB
 app.mount("/", StaticFiles(directory=STATIC, html=True), name="static")
