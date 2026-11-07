@@ -1,3 +1,4 @@
+
 import re
 import subprocess
 import tempfile
@@ -26,22 +27,22 @@ def valid_tiktok_url(raw):
     return host == "tiktok.com" or host.endswith(".tiktok.com")
 
 
-# MARCA DE AGUA DISCRETA
+# MARCA DE AGUA: @theclipscolombia
 def create_watermark(path):
-    image = Image.new("RGBA", (360, 54), (0, 0, 0, 0))
+    image = Image.new("RGBA", (500, 70), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
 
     font = ImageFont.truetype(
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 24
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 32
     )
 
     draw.text(
         (5, 8),
         "@theclipscolombia",
         font=font,
-        fill=(255, 255, 255, 135),
+        fill=(255, 255, 255, 185),
         stroke_width=1,
-        stroke_fill=(0, 0, 0, 90)
+        stroke_fill=(0, 0, 0, 120)
     )
 
     image.save(path)
@@ -61,7 +62,7 @@ def apply_watermark(source, destination, workdir):
         "-i", str(watermark),
         "-filter_complex",
         "[0:v]scale=w='min(720,iw)':h=-2[base];"
-        "[1:v][base]scale2ref=w=main_w*0.30:h=-1[wm][base2];"
+        "[1:v][base]scale2ref=w=main_w*0.40:h=-1[wm][base2];"
         "[base2][wm]overlay=x=W-w-14:y=H-h-14:format=auto[v]",
         "-map", "[v]",
         "-map", "0:a?",
