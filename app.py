@@ -34,7 +34,6 @@ def create_watermark(path):
     green = (83, 252, 24, 190)
     white = (255, 255, 255, 190)
 
-    # Símbolo K estilizado en verde.
     draw.polygon([
         (18, 15), (43, 15), (43, 39), (70, 15),
         (101, 15), (65, 49), (101, 84), (70, 84),
@@ -44,7 +43,6 @@ def create_watermark(path):
     font = ImageFont.truetype(
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 43
     )
-
     draw.text((122, 25), "@theclipscolombia", font=font, fill=white)
     image.save(path)
 
@@ -55,19 +53,24 @@ def apply_watermark(source, destination, workdir):
 
     command = [
         "ffmpeg", "-y",
+        "-threads", "1",
+        "-filter_threads", "1",
+        "-filter_complex_threads", "1",
         "-i", str(source),
         "-i", str(watermark),
         "-filter_complex",
-        "[1:v][0:v]scale2ref=w=main_w*0.42:h=-1[wm][base];"
-        "[base][wm]overlay=x=W-w-24:y=H-h-24:format=auto[v]",
+        "[0:v]scale=w='min(720,iw)':h=-2[base];"
+        "[1:v][base]scale2ref=w=main_w*0.42:h=-1[wm][base2];"
+        "[base2][wm]overlay=x=W-w-16:y=H-h-16:format=auto[v]",
         "-map", "[v]",
         "-map", "0:a?",
         "-c:v", "libx264",
-        "-preset", "veryfast",
-        "-crf", "23",
+        "-threads", "1",
+        "-preset", "ultrafast",
+        "-crf", "28",
         "-pix_fmt", "yuv420p",
         "-c:a", "aac",
-        "-b:a", "128k",
+        "-b:a", "96k",
         "-movflags", "+faststart",
         str(destination)
     ]
@@ -100,8 +103,8 @@ def download_video(body: DownloadRequest):
     outdir = Path(tmp.name)
 
     opts = {
-        "outtmpl": str(outdir / "%(title).80B-%(id)s.%(ext)s"),
-        "format": "best[ext=mp4]/best",
+        "outtmpl": str(outdir / "%(title).60B-%(id)s.%(ext)s"),
+        "format": "best[height<=720][ext=mp4]/best[height<=720]/best",
         "merge_output_format": "mp4",
         "noplaylist": True,
         "quiet": True,
@@ -109,7 +112,7 @@ def download_video(body: DownloadRequest):
         "restrictfilenames": True,
         "socket_timeout": 20,
         "retries": 1,
-        "max_filesize": 250 * 1024 * 1024,
+        "max_filesize": 100 * 1024 * 1024,
     }
 
     try:
@@ -123,14 +126,11 @@ def download_video(body: DownloadRequest):
                 if p.is_file() and p.suffix.lower() in
                 {".mp4", ".mov", ".mkv", ".webm"}
             ]
-
             if not candidates:
                 raise RuntimeError("No se encontró el video.")
-
             filename = candidates[0]
 
         watermarked = outdir / "video_theclipscolombia.mp4"
-
         apply_watermark(filename, watermarked, outdir)
 
         safe_name = re.sub(
